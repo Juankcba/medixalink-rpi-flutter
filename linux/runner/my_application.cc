@@ -47,6 +47,11 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "medlink_kiosk");
   }
 
+  // FORCE FULLSCREEN FOR KIOSK MODE
+  gtk_window_fullscreen(window);
+  // gtk_window_maximize(window); // Alternative if we wanted windowed max
+
+
   gtk_window_set_default_size(window, 1280, 720);
   gtk_widget_show(GTK_WIDGET(window));
 
