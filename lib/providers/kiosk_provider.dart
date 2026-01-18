@@ -58,6 +58,9 @@ class KioskProvider with ChangeNotifier {
       // Connect to socket only if not linked (or always? valid to update config)
       _connectSocket();
     }
+    
+    _isInitialized = true;
+    notifyListeners();
   }
 
   Future<void> _validateRegistration() async {
@@ -89,10 +92,6 @@ class KioskProvider with ChangeNotifier {
 
   void _validateRegistrationLater() {
      // Optional: retry logic
-  }
-    
-    _isInitialized = true;
-    notifyListeners();
   }
   
   void _connectSocket() {
