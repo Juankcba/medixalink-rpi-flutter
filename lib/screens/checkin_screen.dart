@@ -36,69 +36,40 @@ class _CheckInScreenState extends State<CheckInScreen> {
     try {
       final kiosk = Provider.of<KioskProvider>(context, listen: false);
       final printer = PrinterService();
-
-      // Call Backend to Check-in
-      // We need to implement this method in KioskProvider or direct http here.
-      // Let's assume KioskProvider has checkIn
       final result = await kiosk.performCheckIn(_dni);
       
-      // Result should contain: { ticket: 'A001', office: 'Consultorio 2', patient: 'Juan Perez', date: '...' }
+      final status = result['status'] as String? ?? 'error';
       
-      // Print Ticket
-      try {
-        await printer.printTicket(
-          ticketNumber: result['ticketNumber']?.toString() ?? 'T-???',
-          office: result['office']?.toString() ?? 'Recepción',
-          patientName: result['patientName']?.toString() ?? 'Paciente',
-          date: result['date']?.toString() ?? DateTime.now().toString(),
-        );
-      } catch (e) {
-        print("Printing failed: $e");
-        // Don't block UI success on print fail, but maybe show toast
-      }
-
-      // Show result dialog
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            icon: const Icon(Icons.check_circle, size: 64, color: Colors.green),
-            title: const Text('¡Bienvenido!'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Te has anunciado correctamente.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'TURNO: ${result['ticketNumber'] ?? "---"}',
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  result['office'] ?? "Espere llamado",
-                  style: const TextStyle(fontSize: 24, color: Colors.blueGrey),
-                ),
-                const SizedBox(height: 16),
-                const Text('Retira tu ticket impreso.', style: TextStyle(fontSize: 14, color: Colors.grey))
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  setState(() {
-                    _dni = '';
-                    _isLoading = false;
-                  });
-                }, 
-                child: const Text('CERRAR', style: TextStyle(fontSize: 20))
-              )
-            ],
-          ),
-        );
+      if (status == 'choose_appointment') {
+        // Multiple appointments - show selection dialog
+        if (mounted) _showAppointmentSelector(result);
+      } else if (status == 'already_attended') {
+        // Already attended - offer to go to secretary
+        if (mounted) _showAlreadyAttendedDialog(result);
+      } else if (status == 'see_secretary') {
+        // No appointment - show secretary ticket
+        try {
+          await printer.printTicket(
+            ticketNumber: result['ticketNumber']?.toString() ?? 'S-???',
+            office: result['office']?.toString() ?? 'Recepción',
+            patientName: result['patientName']?.toString() ?? 'Paciente',
+            date: result['date']?.toString() ?? DateTime.now().toString(),
+          );
+        } catch (e) { print("Print failed: $e"); }
+        if (mounted) _showSecretaryDialog(result);
+      } else if (status == 'success') {
+        // Success - print ticket and show confirmation
+        try {
+          await printer.printTicket(
+            ticketNumber: result['ticketNumber']?.toString() ?? 'T-???',
+            office: result['office']?.toString() ?? 'Consultorio',
+            patientName: result['patientName']?.toString() ?? 'Paciente',
+            date: result['date']?.toString() ?? DateTime.now().toString(),
+          );
+        } catch (e) { print("Print failed: $e"); }
+        if (mounted) _showSuccessDialog(result);
+      } else {
+        throw Exception(result['message'] ?? 'Error desconocido');
       }
     } catch (e) {
       if (mounted) {
@@ -110,6 +81,164 @@ class _CheckInScreenState extends State<CheckInScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  void _showSuccessDialog(Map<String, dynamic> result) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.check_circle, size: 64, color: Colors.green),
+        title: const Text('¡Bienvenido!'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('TURNO: ${result['ticketNumber'] ?? "---"}',
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            Text(result['office'] ?? 'Espere llamado',
+              style: const TextStyle(fontSize: 24, color: Colors.blueGrey)),
+            const SizedBox(height: 16),
+            Text('Dr. ${result['doctorName'] ?? 'Médico de turno'}',
+              style: const TextStyle(fontSize: 18)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); setState(() => _dni = ''); }, 
+            child: const Text('CERRAR', style: TextStyle(fontSize: 20))
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showSecretaryDialog(Map<String, dynamic> result) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.support_agent, size: 64, color: Colors.orange),
+        title: const Text('Diríjase a Recepción'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('TURNO: ${result['ticketNumber'] ?? "S-???"}',
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            const Text('Por favor acérquese al área de recepción.',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); setState(() => _dni = ''); }, 
+            child: const Text('CERRAR', style: TextStyle(fontSize: 20))
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showAlreadyAttendedDialog(Map<String, dynamic> result) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.info_outline, size: 64, color: Colors.blue),
+        title: Text('Hola, ${result['patientName'] ?? 'Paciente'}'),
+        content: const Text(
+          'Ya fue atendido hoy.\n¿Necesita solicitar un nuevo turno?',
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); setState(() => _dni = ''); }, 
+            child: const Text('CANCELAR')
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              // Call secretary request
+              final kiosk = Provider.of<KioskProvider>(context, listen: false);
+              final secretaryResult = await kiosk.requestSecretary(_dni);
+              if (mounted) _showSecretaryDialog(secretaryResult);
+            }, 
+            child: const Text('IR A RECEPCIÓN')
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAppointmentSelector(Map<String, dynamic> result) {
+    final appointments = result['appointments'] as List<dynamic>? ?? [];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Hola, ${result['patientName'] ?? 'Paciente'}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tienes múltiples turnos hoy.\nSelecciona uno:',
+                style: TextStyle(fontSize: 16)),
+              const SizedBox(height: 16),
+              ...appointments.map((apt) {
+                final time = DateTime.tryParse(apt['time'] ?? '') ?? DateTime.now();
+                final formattedTime = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.medical_services, color: Colors.blue),
+                    title: Text(apt['doctorName'] ?? 'Médico'),
+                    subtitle: Text(apt['specialty'] ?? 'General'),
+                    trailing: Text(formattedTime, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await _confirmAppointment(apt['id']);
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); setState(() => _dni = ''); }, 
+            child: const Text('CANCELAR')
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmAppointment(String appointmentId) async {
+    setState(() => _isLoading = true);
+    try {
+      final kiosk = Provider.of<KioskProvider>(context, listen: false);
+      final result = await kiosk.confirmAppointment(appointmentId);
+      
+      if (result['status'] == 'success') {
+        final printer = PrinterService();
+        try {
+          await printer.printTicket(
+            ticketNumber: result['ticketNumber']?.toString() ?? 'T-???',
+            office: result['office']?.toString() ?? 'Consultorio',
+            patientName: result['patientName']?.toString() ?? 'Paciente',
+            date: result['date']?.toString() ?? DateTime.now().toString(),
+          );
+        } catch (e) { print("Print failed: $e"); }
+        if (mounted) _showSuccessDialog(result);
+      } else {
+        throw Exception(result['message'] ?? 'Error al confirmar turno');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red)
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
 
   Widget _buildKey(String val) {
     return Padding(

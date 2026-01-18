@@ -272,4 +272,52 @@ class KioskProvider with ChangeNotifier {
       throw Exception('Error de conexión: $e');
     }
   }
+
+  // Request Secretary (for patients without appointments or already attended)
+  Future<Map<String, dynamic>> requestSecretary(String dni) async {
+    try {
+      final url = Uri.parse('${AppConstants.apiBaseUrl}/kiosk/request-secretary');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'deviceId': _deviceId,
+          'dni': dni,
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final err = json.decode(response.body);
+        throw Exception(err['message'] ?? 'Error al solicitar recepción');
+      }
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  // Confirm a specific appointment (when patient selects from list)
+  Future<Map<String, dynamic>> confirmAppointment(String appointmentId) async {
+    try {
+      final url = Uri.parse('${AppConstants.apiBaseUrl}/kiosk/confirm-appointment');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'deviceId': _deviceId,
+          'appointmentId': appointmentId,
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final err = json.decode(response.body);
+        throw Exception(err['message'] ?? 'Error al confirmar turno');
+      }
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
 }
