@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../config/constants.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/socket_service.dart';
 
 class KioskProvider with ChangeNotifier {
   bool _isInitialized = false;
@@ -14,6 +15,8 @@ class KioskProvider with ChangeNotifier {
   String? _tenantId;
   String? _officeId;
   String? _linkCode;
+  
+  final SocketService _socketService = SocketService();
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -43,10 +46,32 @@ class KioskProvider with ChangeNotifier {
     
     if (_tenantId != null) {
       _isLinked = true;
+    } else {
+      // Connect to socket only if not linked (or always? valid to update config)
+      _connectSocket();
     }
     
     _isInitialized = true;
     notifyListeners();
+  }
+  
+  void _connectSocket() {
+    if (_deviceId == null) return;
+    
+    _socketService.initSocket(_deviceId!);
+    _socketService.onKioskLinked = (data) {
+      print("Kiosk Linked Event Data: $data");
+      // Data expected: { tenantId: string, name: string, type: string, officeId?: string }
+      if (data != null) {
+        setConfig(Map<String, dynamic>.from(data));
+      }
+    };
+  }
+  
+  @override
+  void dispose() {
+    _socketService.dispose();
+    super.dispose();
   }
   
   String? _error; // Store error message
@@ -69,20 +94,6 @@ class KioskProvider with ChangeNotifier {
       
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        _linkCode = data['msg']; // It seems backend returns {msg: ...} but controller logic implies code. Wait, verification step 954 showed {msg: "Use /link endpoint..."}
-                                 // Wait! The backend returns {msg: ...} but the frontend expects 'code'.
-                                 // Let's check logic. KioskController says: return { msg: 'Use /link endpoint with scanned code' };
-                                 // This is wrong! The Device needs to DISPLAY a code.
-                                 // The Controller implementation was a placeholder!
-        
-        // Correcting interpretation: The endpoint creates a PENDING request and returns a code (e.g. "1234")
-        // But the current controller code in Step 938 returns a hardcoded msg.
-        // That is why it fails or shows weird stuff!
-        
-        // TEMPORARY FIX: Show what backend returns to debug, or fix backend.
-        // The user verified curl returns {"msg":"Use /link endpoint with scanned code"}.
-        // The app expects data['code']. data['code'] is null.
-        // So _linkCode becomes null.
         
         // Check if 'code' exists, otherwise check for 'msg' just in case of mismatch
         if (data['code'] != null) {
@@ -91,11 +102,13 @@ class KioskProvider with ChangeNotifier {
            // Fallback if backend sends code in 'msg'
            _linkCode = data['msg'];
         } else {
-           // If backend is still sending "Use /link endpoint..." message, that's an error.
-           // However, recent edits to controller SHOULD return code.
            _linkCode = null; // Ensure null so UI shows error
            _error = "Respuesta del servidor inválida: ${response.body}";
         }
+        
+        // Ensure socket is connected to receive the linking confirmation
+        _connectSocket();
+        
         notifyListeners();
       } else {
         _error = "HTTP ${response.statusCode}: ${response.body}";
