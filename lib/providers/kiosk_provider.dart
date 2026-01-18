@@ -6,11 +6,16 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/socket_service.dart';
 import '../services/printer_service.dart';
+import 'dart:async';
 
 class KioskProvider with ChangeNotifier {
   bool _isInitialized = false;
   bool _isLoading = false; 
   bool _isLinked = false;
+  
+  // Stream for UI messages (Toasts/Snackbars)
+  final _messageController = StreamController<String>.broadcast();
+  Stream<String> get messageStream => _messageController.stream;
   
   String? _deviceId;
   String? _tenantId;
@@ -46,11 +51,45 @@ class KioskProvider with ChangeNotifier {
     _officeId = prefs.getString('officeId');
     
     if (_tenantId != null) {
+      // Optimistically set to linked, but verify
       _isLinked = true;
+      _validateRegistration();
     } else {
       // Connect to socket only if not linked (or always? valid to update config)
       _connectSocket();
     }
+  }
+
+  Future<void> _validateRegistration() async {
+    try {
+      final url = Uri.parse('${AppConstants.apiBaseUrl}/kiosk/devices/$_deviceId/config');
+      final response = await http.get(url);
+      
+      if (response.statusCode == 200) {
+        // Valid, update config if needed
+        final data = json.decode(response.body);
+        await setConfig(Map<String, dynamic>.from(data));
+        _connectSocket();
+      } else if (response.statusCode == 404 || response.statusCode == 401 || response.statusCode == 403) {
+        // Invalid or Deleted
+        print("Device Validation Failed (${response.statusCode}). Resetting...");
+        await _resetToFactory();
+      } else {
+         // Server error or offline? Keep optimistic for now if network fail
+         _validateRegistrationLater(); // Retry later? Or just connect socket
+         _connectSocket();
+      }
+    } catch(e) {
+      print("Validation error: $e");
+      // If network error, might want to allow offline checkin? 
+      // For now, try to connect socket anyway
+      _connectSocket();
+    }
+  }
+
+  void _validateRegistrationLater() {
+     // Optional: retry logic
+  }
     
     _isInitialized = true;
     notifyListeners();

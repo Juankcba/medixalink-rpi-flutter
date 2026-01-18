@@ -17,6 +17,29 @@ fi
 echo "Installing $SERVICE_NAME service for user $USER_NAME..."
 
 # Create Service File
+EOF
+
+# Create a wrapper script to handle X11 setup
+WRAPPER_PATH="$(pwd)/kiosk_launcher.sh"
+cat > $WRAPPER_PATH <<EOF
+#!/bin/bash
+export DISPLAY=:0
+export XAUTHORITY=/home/$USER_NAME/.Xauthority
+
+# Disable Screen Saver / Power Management
+xset s noblank -display :0
+xset s off -display :0
+xset -dpms -display :0
+# Hide cursor if using unclutter
+# unclutter -idle 0.1 -root &
+
+# Launch App
+$EXE_PATH
+EOF
+
+chmod +x $WRAPPER_PATH
+
+# Create Service File
 sudo bash -c "cat > /etc/systemd/system/$SERVICE_NAME.service" <<EOF
 [Unit]
 Description=MedixaLink Kiosk Flutter App
@@ -32,7 +55,7 @@ Environment="XAUTHORITY=/home/$USER_NAME/.Xauthority"
 # Add /usr/bin to PATH just in case
 Environment="PATH=/usr/bin:/usr/local/bin:/bin"
 
-ExecStart=$EXE_PATH
+ExecStart=$WRAPPER_PATH
 Restart=always
 RestartSec=5s
 

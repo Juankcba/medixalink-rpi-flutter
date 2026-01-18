@@ -155,154 +155,192 @@ class _CheckInScreenState extends State<CheckInScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Listen for global messages (like Test Print results)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final kiosk = Provider.of<KioskProvider>(context, listen: false);
+      kiosk.messageStream.listen((msg) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text(msg), 
+               backgroundColor: msg.toLowerCase().contains('error') ? Colors.red : Colors.green
+             )
+           );
+        }
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: Row(
-        children: [
-          // Left Side: Hero / Welcome Area
-          Expanded(
-            flex: 5,
-            child: Container(
-              decoration: const BoxDecoration(
-                 gradient: LinearGradient(
-                   begin: Alignment.topLeft,
-                   end: Alignment.bottomRight,
-                   colors: [Color(0xFF006FEE), Color(0xFF004CB4)],
-                 )
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -50, left: -50,
-                    child: Icon(Icons.medical_services, size: 300, color: Colors.white.withOpacity(0.1))
-                  ),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(60.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(Icons.health_and_safety, size: 60, color: Colors.white),
-                          ),
-                          const SizedBox(height: 40),
-                          const Text(
-                            'Bienvenido a\nMedixaLink',
-                            style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Anúnciese llegada para su turno escaneando su DNI o ingresándolo manualmente.',
-                            style: TextStyle(fontSize: 24, color: Colors.white70, height: 1.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Increased breakpoint for 5-inch screens (often 800px width)
+          // Should default to single column if width < 900
+          final isSmallScreen = constraints.maxWidth < 900;
           
-          // Right Side: Interaction
-          Expanded(
-            flex: 4,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                       "Ingrese su DNI",
-                       style: TextStyle(fontSize: 20, color: Colors.grey, fontWeight: FontWeight.w500)
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Display Area
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Colors.grey.shade200, blurRadius: 15, offset: const Offset(0, 5))
-                        ],
-                        border: Border.all(color: Colors.grey.shade200),
+          return Row(
+            children: [
+              // Left Side: Hero / Welcome Area (Hidden on very small screens if needed, or smaller flex)
+              if (!isSmallScreen)
+              Expanded(
+                flex: 4,
+                child: Container(
+                  decoration: const BoxDecoration(
+                     gradient: LinearGradient(
+                       begin: Alignment.topLeft,
+                       end: Alignment.bottomRight,
+                       colors: [Color(0xFF006FEE), Color(0xFF004CB4)],
+                     )
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: -50, left: -50,
+                        child: Icon(Icons.medical_services, size: 200, color: Colors.white.withOpacity(0.1))
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _dni.isEmpty ? '________' : _dni,
-                            style: TextStyle(
-                              fontSize: 40, 
-                              fontWeight: FontWeight.bold, 
-                              letterSpacing: 4,
-                              color: _dni.isEmpty ? Colors.grey.shade300 : Colors.black87
-                            ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(40.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Icon(Icons.health_and_safety, size: 40, color: Colors.white),
+                              ),
+                              const SizedBox(height: 30),
+                              const Text(
+                                'Bienvenido a\nMedixaLink',
+                                style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1),
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                'Anúnciese llegada para su turno escaneando su DNI o ingresándolo manualmente.',
+                                style: TextStyle(fontSize: 18, color: Colors.white70, height: 1.5),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    
-                    // Keypad Grid
-                    if (_isLoading)
-                      const Expanded(child: Center(child: CircularProgressIndicator()))
-                    else ...[
-                      Row(mainAxisAlignment: MainAxisAlignment.center, children: ['1', '2', '3'].map(_buildKey).toList()),
-                      Row(mainAxisAlignment: MainAxisAlignment.center, children: ['4', '5', '6'].map(_buildKey).toList()),
-                      Row(mainAxisAlignment: MainAxisAlignment.center, children: ['7', '8', '9'].map(_buildKey).toList()),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center, 
-                        children: [
-                             // Empty placeholder to balance grid or Back button
-                             _buildActionKey(
-                               icon: Icons.backspace, 
-                               color: Colors.red, 
-                               onTap: _onBackspace
-                             ),
-                             _buildKey('0'),
-                             _buildActionKey(
-                               icon: Icons.check, 
-                               color: Colors.green, 
-                               onTap: (_dni.length >= 6) ? _onSubmit : () {}
-                             ),
-                        ]
+                        ),
                       ),
                     ],
-
-                    const SizedBox(height: 40),
-
-                    // Manual Confirm Button (Optional, since we have check key, but good to have explicit)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: (_dni.length >= 6 && !_isLoading) ? _onSubmit : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black87,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text('CONFIRMAR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+              
+              // Right Side: Interaction
+              Expanded(
+                flex: 6,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                             "Ingrese su DNI",
+                             style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500)
+                          ),
+                          const SizedBox(height: 10),
+                          
+                          // Display Area
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(color: Colors.grey.shade200, blurRadius: 10, offset: const Offset(0, 4))
+                              ],
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _dni.isEmpty ? '________' : _dni,
+                                    style: TextStyle(
+                                      fontSize: 32, 
+                                      fontWeight: FontWeight.bold, 
+                                      letterSpacing: 4,
+                                      color: _dni.isEmpty ? Colors.grey.shade300 : Colors.black87
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Keypad Grid
+                          if (_isLoading)
+                            const Expanded(child: Center(child: CircularProgressIndicator()))
+                          else ...[
+                            Expanded(child: FittedBox(child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(mainAxisAlignment: MainAxisAlignment.center, children: ['1', '2', '3'].map(_buildKey).toList()),
+                                Row(mainAxisAlignment: MainAxisAlignment.center, children: ['4', '5', '6'].map(_buildKey).toList()),
+                                Row(mainAxisAlignment: MainAxisAlignment.center, children: ['7', '8', '9'].map(_buildKey).toList()),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center, 
+                                  children: [
+                                       _buildActionKey(
+                                         icon: Icons.backspace, 
+                                         color: Colors.red, 
+                                         onTap: _onBackspace
+                                       ),
+                                       _buildKey('0'),
+                                       _buildActionKey(
+                                         icon: Icons.check, 
+                                         color: Colors.green, 
+                                         onTap: (_dni.length >= 6) ? _onSubmit : () {}
+                                       ),
+                                  ]
+                                ),
+                              ],
+                            ))),
+                          ],
+
+                          const SizedBox(height: 20),
+
+                          // Manual Confirm Button (Smaller height)
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: (_dni.length >= 6 && !_isLoading) ? _onSubmit : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black87,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('CONFIRMAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
