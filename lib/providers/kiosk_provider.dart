@@ -166,4 +166,28 @@ class KioskProvider with ChangeNotifier {
        _error = "Error recuperando config: $e";
      }
   }
+
+  // Perform Check-in
+  Future<Map<String, dynamic>> performCheckIn(String dni) async {
+    try {
+      final url = Uri.parse('${AppConstants.apiBaseUrl}/kiosk/check-in');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'deviceId': _deviceId,
+          'dni': dni,
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final err = json.decode(response.body);
+        throw Exception(err['message'] ?? 'Error al realizar check-in');
+      }
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
 }
