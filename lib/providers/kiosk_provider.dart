@@ -53,7 +53,7 @@ class KioskProvider with ChangeNotifier {
       final response = await http.post(
         url, 
         headers: {'Content-Type': 'application/json'},
-        body: JSON.encode({'deviceId': _deviceId}),
+        body: json.encode({'deviceId': _deviceId}),
       );
       
       if (response.statusCode == 201) {
