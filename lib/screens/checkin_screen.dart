@@ -112,17 +112,43 @@ class _CheckInScreenState extends State<CheckInScreen> {
   }
 
   Widget _buildKey(String val) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: SizedBox(
+        width: 80,
+        height: 80,
         child: ElevatedButton(
           onPressed: () => _onKeyPress(val),
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 2,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black87,
+            elevation: 4,
+            shadowColor: Colors.black26,
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
           ),
-          child: Text(val, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w600)),
+          child: Text(val, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionKey({required IconData icon, required VoidCallback onTap, required Color color}) {
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: SizedBox(
+        width: 80,
+        height: 80,
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color.withOpacity(0.1),
+            foregroundColor: color,
+            elevation: 0,
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+          ),
+          child: Icon(icon, size: 28),
         ),
       ),
     );
@@ -131,11 +157,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       body: Row(
         children: [
-          // Left: Info / Welcome
+          // Left Side: Hero / Welcome Area
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Container(
               decoration: const BoxDecoration(
                  gradient: LinearGradient(
@@ -144,107 +171,134 @@ class _CheckInScreenState extends State<CheckInScreen> {
                    colors: [Color(0xFF006FEE), Color(0xFF004CB4)],
                  )
               ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
                 children: [
-                  Icon(Icons.local_hospital, size: 120, color: Colors.white),
-                  SizedBox(height: 40),
-                  Text(
-                    'Bienvenido',
-                    style: TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1),
+                  Positioned(
+                    top: -50, left: -50,
+                    child: Icon(Icons.medical_services, size: 300, color: Colors.white.withOpacity(0.1))
                   ),
-                  SizedBox(height: 20),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'Por favor, ingrese su DNI para anunciarse al profesional.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 24, color: Colors.white70, height: 1.4),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(60.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(Icons.health_and_safety, size: 60, color: Colors.white),
+                          ),
+                          const SizedBox(height: 40),
+                          const Text(
+                            'Bienvenido a\nMedixaLink',
+                            style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Anúnciese llegada para su turno escaneando su DNI o ingresándolo manualmente.',
+                            style: TextStyle(fontSize: 24, color: Colors.white70, height: 1.5),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Right: Numpad
+          
+          // Right Side: Interaction
           Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.all(60.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Display
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 24),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(20),
-                      color: Colors.grey.shade50,
-                      boxShadow: [
-                         BoxShadow(
-                           color: Colors.black.withOpacity(0.05),
-                           blurRadius: 10,
-                           offset: const Offset(0, 4)
-                         )
-                      ]
+            flex: 4,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                       "Ingrese su DNI",
+                       style: TextStyle(fontSize: 20, color: Colors.grey, fontWeight: FontWeight.w500)
                     ),
-                    child: Text(
-                      _dni.isEmpty ? 'Ingrese DNI' : _dni,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 56, 
-                        letterSpacing: 6,
-                        color: _dni.isEmpty ? Colors.grey.shade400 : Colors.black87,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(height: 20),
+                    
+                    // Display Area
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.grey.shade200, blurRadius: 15, offset: const Offset(0, 5))
+                        ],
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _dni.isEmpty ? '________' : _dni,
+                            style: TextStyle(
+                              fontSize: 40, 
+                              fontWeight: FontWeight.bold, 
+                              letterSpacing: 4,
+                              color: _dni.isEmpty ? Colors.grey.shade300 : Colors.black87
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                  
-                  // Keypad
-                  Expanded(
-                     child: _isLoading 
-                        ? const Center(child: CircularProgressIndicator())
-                        : Column(
-                      children: [
-                        Expanded(child: Row(children: ['1', '2', '3'].map(_buildKey).toList())),
-                        Expanded(child: Row(children: ['4', '5', '6'].map(_buildKey).toList())),
-                        Expanded(child: Row(children: ['7', '8', '9'].map(_buildKey).toList())),
-                        Expanded(child: Row(children: [
-                             const Expanded(child: SizedBox()), // Empty
+                    const SizedBox(height: 40),
+                    
+                    // Keypad Grid
+                    if (_isLoading)
+                      const Expanded(child: Center(child: CircularProgressIndicator()))
+                    else ...[
+                      Row(mainAxisAlignment: MainAxisAlignment.center, children: ['1', '2', '3'].map(_buildKey).toList()),
+                      Row(mainAxisAlignment: MainAxisAlignment.center, children: ['4', '5', '6'].map(_buildKey).toList()),
+                      Row(mainAxisAlignment: MainAxisAlignment.center, children: ['7', '8', '9'].map(_buildKey).toList()),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center, 
+                        children: [
+                             // Empty placeholder to balance grid or Back button
+                             _buildActionKey(
+                               icon: Icons.backspace, 
+                               color: Colors.red, 
+                               onTap: _onBackspace
+                             ),
                              _buildKey('0'),
-                             Expanded(child: Padding(padding: const EdgeInsets.all(8.0), child: ElevatedButton(
-                               onPressed: _onBackspace,
-                               style: ElevatedButton.styleFrom(
-                                 backgroundColor: Colors.red.shade50,
-                                 foregroundColor: Colors.red,
-                                 elevation: 0,
-                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
-                                 padding: const EdgeInsets.symmetric(vertical: 24)
-                               ),
-                               child: const Icon(Icons.backspace_outlined, size: 32),
-                             ))),
-                        ])),
-                      ],
+                             _buildActionKey(
+                               icon: Icons.check, 
+                               color: Colors.green, 
+                               onTap: (_dni.length >= 6) ? _onSubmit : () {}
+                             ),
+                        ]
+                      ),
+                    ],
+
+                    const SizedBox(height: 40),
+
+                    // Manual Confirm Button (Optional, since we have check key, but good to have explicit)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: (_dni.length >= 6 && !_isLoading) ? _onSubmit : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black87,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('CONFIRMAR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
                     ),
-                  ),
-                   const SizedBox(height: 30),
-                   SizedBox(
-                     height: 90,
-                     child: ElevatedButton(
-                       onPressed: _dni.length >= 6 && !_isLoading ? _onSubmit : null,
-                       style: ElevatedButton.styleFrom(
-                         backgroundColor: const Color(0xFF006FEE),
-                         foregroundColor: Colors.white,
-                         elevation: 4,
-                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                       ),
-                       child: const Text('CONFIRMAR LLEGADA', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                     ),
-                   )
-                ],
+                  ],
+                ),
               ),
             ),
           ),

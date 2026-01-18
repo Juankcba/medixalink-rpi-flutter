@@ -5,6 +5,7 @@ import '../config/constants.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/socket_service.dart';
+import '../services/printer_service.dart';
 
 class KioskProvider with ChangeNotifier {
   bool _isInitialized = false;
@@ -66,8 +67,48 @@ class KioskProvider with ChangeNotifier {
         setConfig(Map<String, dynamic>.from(data));
       }
     };
+
+    _socketService.socket.on('print-test', (data) async {
+       print("Test Print Requested");
+       try {
+         final printer = PrinterService();
+         await printer.printTicket(
+           ticketNumber: "TEST", 
+           office: "Test Printer", 
+           patientName: "Prueba Sistema", 
+           date: DateTime.now().toString()
+         );
+       } catch (e) {
+         print("Test Print Failed: $e");
+       }
+    });
   }
   
+    });
+    
+    _socketService.socket.on('kiosk-unlinked', (_) async {
+       print("Kiosk Unlinked Event Received");
+       await _resetToFactory();
+    });
+  }
+  
+  Future<void> _resetToFactory() async {
+     final prefs = await SharedPreferences.getInstance();
+     await prefs.remove('tenantId');
+     await prefs.remove('officeId');
+     // Keep deviceId to reuse it? Or new one? 
+     // Usually keep deviceId but clear linking info.
+     
+     _isLinked = false;
+     _tenantId = null;
+     _officeId = null;
+     _linkCode = null;
+     
+     // Disconnect socket temporarily or just rejoin? 
+     // We need to fetch a new code immediately.
+     fetchLinkCode();
+  }
+
   @override
   void dispose() {
     _socketService.dispose();
