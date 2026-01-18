@@ -37,7 +37,7 @@ dependencies:
 
   # Architecture & Logic
   http: ^1.2.0
-  socket_io_client: ^2.0.3+1
+  socket_io_client: ^3.1.4
   provider: ^6.1.1
   shared_preferences: ^2.2.2
   uuid: ^4.3.3
@@ -46,6 +46,7 @@ dependencies:
   # UI & Assets
   qr_flutter: ^4.1.0
   google_fonts: ^6.1.0
+  esc_pos_utils_plus: ^2.0.4
 
 dev_dependencies:
   flutter_test:

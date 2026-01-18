@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/kiosk_provider.dart';
+import '../services/printer_service.dart';
 
 class CheckInScreen extends StatefulWidget {
   const CheckInScreen({super.key});
@@ -30,35 +33,81 @@ class _CheckInScreenState extends State<CheckInScreen> {
   Future<void> _onSubmit() async {
     setState(() => _isLoading = true);
     
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // Show result dialog
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.check_circle, size: 64, color: Colors.green),
-          title: const Text('¡Bienvenido!'),
-          content: const Text(
-            'Te has anunciado correctamente.\n\nTICKET: A001\nConsultorio 3',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24),
+    try {
+      final kiosk = Provider.of<KioskProvider>(context, listen: false);
+      final printer = PrinterService();
+
+      // Call Backend to Check-in
+      // We need to implement this method in KioskProvider or direct http here.
+      // Let's assume KioskProvider has checkIn
+      final result = await kiosk.performCheckIn(_dni);
+      
+      // Result should contain: { ticket: 'A001', office: 'Consultorio 2', patient: 'Juan Perez', date: '...' }
+      
+      // Print Ticket
+      try {
+        await printer.printTicket(
+          ticketNumber: result['ticketNumber'],
+          office: result['office'],
+          patientName: result['patientName'],
+          date: result['date'],
+        );
+      } catch (e) {
+        print("Printing failed: $e");
+        // Don't block UI success on print fail, but maybe show toast
+      }
+
+      // Show result dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.check_circle, size: 64, color: Colors.green),
+            title: const Text('¡Bienvenido!'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Te has anunciado correctamente.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'TURNO: ${result['ticketNumber']}',
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  result['office'],
+                  style: const TextStyle(fontSize: 24, color: Colors.blueGrey),
+                ),
+                const SizedBox(height: 16),
+                const Text('Retira tu ticket impreso.', style: TextStyle(fontSize: 14, color: Colors.grey))
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    _dni = '';
+                    _isLoading = false;
+                  });
+                }, 
+                child: const Text('CERRAR', style: TextStyle(fontSize: 20))
+              )
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() {
-                  _dni = '';
-                  _isLoading = false;
-                });
-              }, 
-              child: const Text('CERRAR', style: TextStyle(fontSize: 20))
-            )
-          ],
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red)
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
