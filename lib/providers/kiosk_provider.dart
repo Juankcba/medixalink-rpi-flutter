@@ -95,6 +95,13 @@ class KioskProvider with ChangeNotifier {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         
+        // Check if device is already linked (Backend returns 201 with status: already_linked)
+        if (data['status'] == 'already_linked') {
+           print("Device already linked (201). Recovering config...");
+           await _fetchExistingConfig();
+           return;
+        }
+
         // Check if 'code' exists, otherwise check for 'msg' just in case of mismatch
         if (data['code'] != null) {
            _linkCode = data['code'];
