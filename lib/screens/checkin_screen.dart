@@ -47,10 +47,10 @@ class _CheckInScreenState extends State<CheckInScreen> {
       // Print Ticket
       try {
         await printer.printTicket(
-          ticketNumber: result['ticketNumber'],
-          office: result['office'],
-          patientName: result['patientName'],
-          date: result['date'],
+          ticketNumber: result['ticketNumber']?.toString() ?? 'T-???',
+          office: result['office']?.toString() ?? 'Recepción',
+          patientName: result['patientName']?.toString() ?? 'Paciente',
+          date: result['date']?.toString() ?? DateTime.now().toString(),
         );
       } catch (e) {
         print("Printing failed: $e");
@@ -74,11 +74,11 @@ class _CheckInScreenState extends State<CheckInScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'TURNO: ${result['ticketNumber']}',
+                  'TURNO: ${result['ticketNumber'] ?? "---"}',
                   style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  result['office'],
+                  result['office'] ?? "Espere llamado",
                   style: const TextStyle(fontSize: 24, color: Colors.blueGrey),
                 ),
                 const SizedBox(height: 16),

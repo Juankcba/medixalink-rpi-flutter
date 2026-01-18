@@ -66,20 +66,22 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final kiosk = Provider.of<KioskProvider>(context);
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Row(
+          child: Flex(
+            direction: isLandscape ? Axis.horizontal : Axis.vertical,
             children: [
-              // Left Column: Code & Status
+              // Info Section
               Expanded(
-                flex: 4,
+                flex: isLandscape ? 4 : 3,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: isLandscape ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                   children: [
                     const Icon(Icons.link, size: 48, color: Colors.blueGrey),
                     const SizedBox(height: 16),
@@ -93,11 +95,11 @@ class _SetupScreenState extends State<SetupScreen> {
                       const CircularProgressIndicator()
                     else if (kiosk.error != null)
                       Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                            Text(
                             'Error: ${kiosk.error}',
                             style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
                           ElevatedButton.icon(
@@ -109,7 +111,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       )
                     else if (kiosk.linkCode != null)
                       Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                         crossAxisAlignment: isLandscape ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                         children: [
                           const Text(
                             "CÓDIGO DE VINCULACIÓN",
@@ -123,8 +125,8 @@ class _SetupScreenState extends State<SetupScreen> {
                           const SizedBox(height: 8),
                           Text(
                             kiosk.linkCode!,
-                            style: const TextStyle(
-                              fontSize: 64, 
+                            style: TextStyle(
+                              fontSize: isLandscape ? 64 : 56, 
                               fontWeight: FontWeight.w900, 
                               letterSpacing: 4,
                               fontFamily: 'Courier',
@@ -133,6 +135,7 @@ class _SetupScreenState extends State<SetupScreen> {
                           ),
                           const SizedBox(height: 32),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               SizedBox(
                                 width: 24,
@@ -156,8 +159,9 @@ class _SetupScreenState extends State<SetupScreen> {
                         ],
                       ),
 
-                    const Spacer(),
+                    if (isLandscape) const Spacer(),
                     
+                    if (isLandscape)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
@@ -182,9 +186,12 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
               ),
               
-              const SizedBox(width: 40),
+              if (isLandscape)
+                const SizedBox(width: 40)
+              else
+                const SizedBox(height: 40),
               
-              // Right Column: QR Code Only
+              // QR Code Section
               Expanded(
                 flex: 4,
                 child: Center(
@@ -215,6 +222,14 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                 ),
               ),
+              
+              if (!isLandscape) ...[
+                 const SizedBox(height: 20),
+                 Text(
+                    kiosk.deviceId ?? "...",
+                    style: const TextStyle(fontFamily: 'Courier', fontSize: 12, color: Colors.grey),
+                 ),
+              ]
             ],
           ),
         ),
