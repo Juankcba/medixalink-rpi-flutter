@@ -16,7 +16,7 @@ class SocketService {
     socket.onConnect((_) {
       print('Connected to Socket.io server');
       // Join room for this specific device
-      socket.emit('joinDevice', {'deviceId': deviceId});
+      socket.emit('join-device', deviceId); // Backend expects 'join-device' and plain string or body
     });
 
     socket.onDisconnect((_) => print('Disconnected from Socket.io server'));
