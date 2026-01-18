@@ -6,19 +6,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class KioskProvider with ChangeNotifier {
-  bool _isLoading = true;
+  bool _isInitialized = false;
+  bool _isLoading = false; 
   bool _isLinked = false;
-  String? _deviceId;
-  String? _tenantId;
-  String? _officeId;
-  String? _linkCode;
   
   // Getters
+  bool get isInitialized => _isInitialized;
   bool get isLoading => _isLoading;
   bool get isLinked => _isLinked;
-  String? get deviceId => _deviceId;
-  String? get tenantId => _tenantId;
-  String? get linkCode => _linkCode;
 
   KioskProvider() {
     _init();
@@ -41,7 +36,7 @@ class KioskProvider with ChangeNotifier {
       _isLinked = true;
     }
     
-    _isLoading = false;
+    _isInitialized = true;
     notifyListeners();
   }
   

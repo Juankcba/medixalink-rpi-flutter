@@ -50,7 +50,7 @@ class AppRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     final kiosk = Provider.of<KioskProvider>(context);
 
-    if (kiosk.isLoading) {
+    if (!kiosk.isInitialized) {
       return const SplashScreen();
     }
 
