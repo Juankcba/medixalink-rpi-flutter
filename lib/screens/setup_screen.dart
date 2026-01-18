@@ -71,7 +71,13 @@ class _SetupScreenState extends State<SetupScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('No se pudo generar el código'),
+                        Text(
+                          kiosk.error != null 
+                            ? 'Error: ${kiosk.error}' 
+                            : 'No se pudo generar el código',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
                         TextButton(
                            onPressed: () => kiosk.fetchLinkCode(), 
                            child: const Text('Reintentar')
