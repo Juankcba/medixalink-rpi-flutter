@@ -82,10 +82,6 @@ class KioskProvider with ChangeNotifier {
          print("Test Print Failed: $e");
        }
     });
-  }
-  
-    });
-    
     _socketService.socket.on('kiosk-unlinked', (_) async {
        print("Kiosk Unlinked Event Received");
        await _resetToFactory();
