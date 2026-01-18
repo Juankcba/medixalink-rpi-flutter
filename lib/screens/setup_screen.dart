@@ -74,9 +74,9 @@ class _SetupScreenState extends State<SetupScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Row(
             children: [
-              // Left Column: Info & Instructions
+              // Left Column: Code & Status
               Expanded(
-                flex: 3,
+                flex: 4,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,17 +87,75 @@ class _SetupScreenState extends State<SetupScreen> {
                       'Vincular Kiosco',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Ingresa el código en el Panel de Admin para vincular este dispositivo.',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Admin > Configuración > Kioscos > Nuevo',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
+                    const SizedBox(height: 40),
                     
+                    if (kiosk.isLoading)
+                      const CircularProgressIndicator()
+                    else if (kiosk.error != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                           Text(
+                            'Error: ${kiosk.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                             onPressed: _fetchCode, 
+                             icon: const Icon(Icons.refresh),
+                             label: const Text('Reintentar')
+                          )
+                        ],
+                      )
+                    else if (kiosk.linkCode != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "CÓDIGO DE VINCULACIÓN",
+                            style: TextStyle(
+                              fontSize: 12, 
+                              fontWeight: FontWeight.bold, 
+                              color: Colors.grey, 
+                              letterSpacing: 1.5
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            kiosk.linkCode!,
+                            style: const TextStyle(
+                              fontSize: 64, 
+                              fontWeight: FontWeight.w900, 
+                              letterSpacing: 4,
+                              fontFamily: 'Courier',
+                              color: Colors.black87
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  value: _secondsRemaining / _totalSeconds,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _secondsRemaining < 60 ? Colors.redAccent : Colors.blueAccent
+                                  ),
+                                  strokeWidth: 3,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                "Expira en ${_formatTime(_secondsRemaining)}",
+                                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
                     const Spacer(),
                     
                     Container(
@@ -126,12 +184,12 @@ class _SetupScreenState extends State<SetupScreen> {
               
               const SizedBox(width: 40),
               
-              // Right Column: QR Code & Code Display
+              // Right Column: QR Code Only
               Expanded(
                 flex: 4,
                 child: Center(
                   child: AspectRatio(
-                    aspectRatio: 0.8, // Taller to fit code below QR
+                    aspectRatio: 1,
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -146,7 +204,13 @@ class _SetupScreenState extends State<SetupScreen> {
                           )
                         ]
                       ),
-                      child: _buildQrContent(kiosk),
+                      child: kiosk.linkCode != null 
+                          ? QrImageView(
+                              data: kiosk.linkCode!,
+                              version: QrVersions.auto,
+                              backgroundColor: Colors.white,
+                            )
+                          : const Center(child: Icon(Icons.qr_code_2, size: 64, color: Colors.grey)),
                     ),
                   ),
                 ),
@@ -158,95 +222,7 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  Widget _buildQrContent(KioskProvider kiosk) {
-    if (kiosk.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
 
-    if (kiosk.error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-            const SizedBox(height: 16),
-            Text(
-              'Error: ${kiosk.error}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-               onPressed: _fetchCode, 
-               icon: const Icon(Icons.refresh),
-               label: const Text('Reintentar')
-            )
-          ],
-        ),
-      );
-    }
-
-    if (kiosk.linkCode != null) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // QR Code (Optional now, but good for quick scan if we add camera to web)
-          Expanded(
-            child: QrImageView(
-              data: kiosk.linkCode!,
-              version: QrVersions.auto,
-              backgroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // The CODE Text
-          const Text(
-            "CÓDIGO DE VINCULACIÓN",
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.5),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            kiosk.linkCode!,
-            style: const TextStyle(
-              fontSize: 48, 
-              fontWeight: FontWeight.w900, 
-              letterSpacing: 8,
-              fontFamily: 'Courier', // Monospace for easier reading
-              color: Colors.black87
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Countdown Progress
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48.0),
-            child: Column(
-              children: [
-                LinearProgressIndicator(
-                  value: _secondsRemaining / _totalSeconds,
-                  backgroundColor: Colors.grey.shade100,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _secondsRemaining < 60 ? Colors.redAccent : Colors.blueAccent
-                  ),
-                  minHeight: 6,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Expira en ${_formatTime(_secondsRemaining)}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          )
-        ],
-      );
-    } 
-    
-    return const Center(child: Text("Iniciando..."));
-  }
 
   String _formatTime(int seconds) {
     int m = seconds ~/ 60;
