@@ -110,6 +110,15 @@ class KioskProvider with ChangeNotifier {
         _connectSocket();
         
         notifyListeners();
+      } else if (response.statusCode == 400 || response.statusCode == 409) {
+        // Device likely already linked. Try to recover configuration.
+        final errorMsg = response.body.toLowerCase();
+        if (errorMsg.contains("already linked") || errorMsg.contains("already_linked")) {
+           print("Device already linked. Attempting to fetch existing config...");
+           await _fetchExistingConfig();
+        } else {
+           _error = "Error: ${response.body}";
+        }
       } else {
         _error = "HTTP ${response.statusCode}: ${response.body}";
       }
@@ -138,5 +147,23 @@ class KioskProvider with ChangeNotifier {
     
     _isLinked = true;
     notifyListeners();
+  }
+
+  Future<void> _fetchExistingConfig() async {
+     try {
+       final url = Uri.parse('${AppConstants.apiBaseUrl}/kiosk/devices/$_deviceId/config');
+       final response = await http.get(url);
+       
+       if (response.statusCode == 200) {
+         final data = json.decode(response.body);
+         await setConfig(Map<String, dynamic>.from(data));
+         // Ensure socket connection upon recovery
+         _connectSocket();
+       } else {
+         _error = "No se pudo recuperar la configuración: ${response.body}";
+       }
+     } catch (e) {
+       _error = "Error recuperando config: $e";
+     }
   }
 }
