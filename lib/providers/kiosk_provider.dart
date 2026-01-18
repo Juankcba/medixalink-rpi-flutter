@@ -84,10 +84,17 @@ class KioskProvider with ChangeNotifier {
         // The app expects data['code']. data['code'] is null.
         // So _linkCode becomes null.
         
+        // Check if 'code' exists, otherwise check for 'msg' just in case of mismatch
         if (data['code'] != null) {
            _linkCode = data['code'];
+        } else if (data['msg'] != null && data['msg'].toString().startsWith('K-')) {
+           // Fallback if backend sends code in 'msg'
+           _linkCode = data['msg'];
         } else {
-           _error = "Backend returned no code: ${response.body}";
+           // If backend is still sending "Use /link endpoint..." message, that's an error.
+           // However, recent edits to controller SHOULD return code.
+           _linkCode = null; // Ensure null so UI shows error
+           _error = "Respuesta del servidor inválida: ${response.body}";
         }
         notifyListeners();
       } else {
